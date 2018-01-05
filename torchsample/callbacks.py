@@ -141,18 +141,18 @@ class TQDM(Callback):
         try:
             self.progbar = tqdm(total=self.train_logs['num_batches'],
                                 unit=' batches')
-            self.progbar.set_description('Epoch %i/%i' % 
+            self.progbar.set_description('Epoch %i/%i' %
                             (epoch+1, self.train_logs['num_epoch']))
         except:
             pass
 
     def on_epoch_end(self, epoch, logs=None):
         log_data = {key: '%.04f' % value for key, value in self.trainer.history.batch_metrics.items()}
-        for k, v in logs.items():
-            if k.endswith('metric'):
-                log_data[k.split('_metric')[0]] = '%.02f' % v
-            else:
-                 log_data[k] = v
+        #for k, v in logs.items():
+        #    if k.endswith('metric'):
+        #        log_data[k.split('_metric')[0]] = '%.02f' % v
+        #    else:
+        #         log_data[k] = v
         self.progbar.set_postfix(log_data)
         self.progbar.update()
         self.progbar.close()
@@ -162,9 +162,9 @@ class TQDM(Callback):
 
     def on_batch_end(self, batch, logs=None):
         log_data = {key: '%.04f' % value for key, value in self.trainer.history.batch_metrics.items()}
-        for k, v in logs.items():
-            if k.endswith('metric'):
-                log_data[k.split('_metric')[0]] = '%.02f' % v
+        #for k, v in logs.items():
+        #    if k.endswith('metric'):
+        #        log_data[k.split('_metric')[0]] = '%.02f' % v
         self.progbar.set_postfix(log_data)
 
 
@@ -182,35 +182,62 @@ class History(Callback):
 
     def on_train_begin(self, logs=None):
         self.epoch_metrics = {
-            'loss': []
+            #'loss': []
         }
         self.batch_size = logs['batch_size']
         self.has_val_data = logs['has_val_data']
         self.has_regularizers = logs['has_regularizers']
-        if self.has_val_data:
-            self.epoch_metrics['val_loss'] = []
-        if self.has_regularizers:
-            self.epoch_metrics['reg_loss'] = []
+        #if self.has_val_data:
+        #    self.epoch_metrics['val_loss'] = []
+        #if self.has_regularizers:
+        #    self.epoch_metrics['reg_loss'] = []
 
     def on_epoch_begin(self, epoch, logs=None):
         self.batch_metrics = {
-            'loss': 0.
+            #'loss': 0.
         }
-        if self.has_regularizers:
-            self.batch_metrics['reg_loss'] = 0.
+        #if self.has_regularizers:
+        #    self.batch_metrics['reg_loss'] = 0.
         self.samples_seen = 0.
 
     def on_epoch_end(self, epoch, logs=None):
+        #print('New epoch logs:')
+        #print(logs)
+        for k in logs:
+            if k in self.epoch_metrics:
+                self.epoch_metrics[k].append(logs[k])
+            else:
+                self.epoch_metrics[k] = [logs[k]]
+
+        for k in self.batch_metrics:
+            if k in self.epoch_metrics:
+                self.epoch_metrics[k].append(self.batch_metrics[k])
+            else:
+                self.epoch_metrics[k] = [self.batch_metrics[k]]
+
+        #print('Updated epoch metrics:')
+        #print(self.epoch_metrics)
+
         #for k in self.batch_metrics:
+        #    if k in self.epoch_metrics:
+
+        # for k in self.batch_metrics:
         #    k_log = k.split('_metric')[0]
         # self.epoch_metrics.update(self.batch_metrics)
         # TODO
-        pass
 
     def on_batch_end(self, batch, logs=None):
-        for k in self.batch_metrics:
-            self.batch_metrics[k] = (self.samples_seen*self.batch_metrics[k] + logs[k]*self.batch_size) / (self.samples_seen+self.batch_size)
+        #print('New batch logs:')
+        #print(logs)
+        for k in logs:
+            if k in self.batch_metrics:
+                self.batch_metrics[k] = (self.samples_seen*self.batch_metrics[k] + logs[k]*self.batch_size) / (self.samples_seen+self.batch_size)
+            else:
+                # TODO: Implement sanity check so that no new metrics are added to logs during the run.
+                self.batch_metrics[k] = logs[k]
         self.samples_seen += self.batch_size
+        #print('Updated batch metrics:')
+        #print(self.batch_metrics)
 
     def __getitem__(self, name):
         return self.epoch_metrics[name]

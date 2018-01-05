@@ -281,17 +281,18 @@ class ModuleTrainer(object):
                     callback_container.on_batch_end(batch_idx, batch_logs)
 
                 if has_val_data:
+                    # Values for the metrics are already included here.
                     val_epoch_logs = self.evaluate(val_inputs,
                                                    val_targets,
                                                    batch_size=batch_size,
                                                    cuda_device=cuda_device,
                                                    verbose=verbose)
                     epoch_logs.update(val_epoch_logs)
-                    epoch_logs.update(batch_logs)
+                    #epoch_logs.update(batch_logs)
                     # TODO how to fix this?
                     # self.history.batch_metrics.update(val_epoch_logs)
 
-                callback_container.on_epoch_end(epoch_idx, self.history.epoch_metrics)
+                callback_container.on_epoch_end(epoch_idx, epoch_logs)
 
                 if self._stop_training:
                     break

@@ -181,7 +181,7 @@ class ModuleTrainer(object):
             self.metric_container = MetricContainer(self._metrics)
         else:
             self._has_metrics = False
-        
+
         if transforms is not None:
             self.set_transforms(transforms)
         else:
@@ -204,7 +204,7 @@ class ModuleTrainer(object):
         # ----------------------------------------------------------------------
         num_inputs, num_targets = _parse_num_inputs_and_targets(inputs, targets)
         len_inputs = len(inputs) if not _is_tuple_or_list(inputs) else len(inputs[0])
-        
+
         if val_data is not None:
             if num_targets == 0:
                 val_data = (val_data, None)
@@ -364,7 +364,7 @@ class ModuleTrainer(object):
                     input_batch, target_batch = fit_helper.grab_batch_from_loader(loader_iter)
                     if cuda_device >= 0:
                         input_batch, target_batch = fit_helper.move_to_cuda(cuda_device, input_batch, target_batch)
-                    
+
                     # ---------------------------------------------
                     self._optimizer.zero_grad()
                     output_batch = fit_forward_fn(input_batch)
@@ -382,7 +382,8 @@ class ModuleTrainer(object):
                     batch_logs['loss'] = loss.data[0]
                     callback_container.on_batch_end(batch_idx, batch_logs)
 
-                epoch_logs.update(self.history.batch_metrics)
+                # TODO: Do this here or in callbacks.py?
+                #epoch_logs.update(self.history.batch_metrics)
                 if has_val_data:
                     val_epoch_logs = self.evaluate_loader(val_loader,
                                                           cuda_device=cuda_device,
@@ -391,7 +392,7 @@ class ModuleTrainer(object):
                     #self.history.batch_metrics.update(val_epoch_logs)
                     #epoch_logs.update(val_epoch_logs)
                     epoch_logs.update(val_epoch_logs)
-                    epoch_logs.update(batch_logs)
+                    #epoch_logs.update(batch_logs)
                     # TODO how to fix this?
                     # self.history.batch_metrics.update(val_epoch_logs)
 
@@ -415,7 +416,6 @@ class ModuleTrainer(object):
 
         predict_helper = _get_helper(self, num_inputs, num_targets=0)
         pred_forward_fn = predict_helper.get_partial_forward_fn(self.model)
-        
         for batch_idx in range(num_batches):
             input_batch, _ = predict_helper.grab_batch(batch_idx, batch_size, inputs, None, volatile=True)
             if cuda_device >= 0:
@@ -431,7 +431,7 @@ class ModuleTrainer(object):
             else:
                 for out_idx in range(len_outputs):
                     prediction_lists[out_idx].append(output_batch[out_idx])
-            
+
         final_pred_list = [th.cat(pred_list,0) for pred_list in prediction_lists]
         self.model.train(mode=True)
         return final_pred_list if len_outputs > 1 else final_pred_list[0]
@@ -471,7 +471,7 @@ class ModuleTrainer(object):
             else:
                 for out_idx in range(len_outputs):
                     prediction_lists[out_idx].append(output_batch[out_idx])
-            
+
         final_pred_list = [th.cat(pred_list,0) for pred_list in prediction_lists]
         self.model.train(mode=True)
         return final_pred_list if len_outputs > 1 else final_pred_list[0]
@@ -491,7 +491,7 @@ class ModuleTrainer(object):
         eval_loss_fn = evaluate_helper.get_partial_loss_fn(self._loss_fn)
         eval_forward_fn = evaluate_helper.get_partial_forward_fn(self.model)
         eval_logs= {'val_loss': 0.}
-        
+
         if self._has_metrics:
             metric_container = MetricContainer(self._metrics, prefix='val_')
             metric_container.set_helper(evaluate_helper)
@@ -506,10 +506,10 @@ class ModuleTrainer(object):
             self._optimizer.zero_grad()
             output_batch = eval_forward_fn(input_batch)
             loss = eval_loss_fn(output_batch, target_batch)
-            
+
             samples_seen += batch_size
             eval_logs['val_loss'] = (samples_seen*eval_logs['val_loss'] + loss.data[0]*batch_size) / (samples_seen+batch_size)
-            
+
             if self._has_metrics:
                 metrics_logs = metric_container(output_batch, target_batch)
                 eval_logs.update(metrics_logs)
@@ -524,7 +524,7 @@ class ModuleTrainer(object):
         self.model.train(mode=False)
         num_inputs, num_targets = _parse_num_inputs_and_targets_from_loader(loader)
         batch_size = loader.batch_size
-        len_inputs = len(loader.sampler) if loader.sampler else len(loader.dataset) 
+        len_inputs = len(loader.sampler) if loader.sampler else len(loader.dataset)
         num_batches = int(math.ceil(len_inputs / batch_size))
 
         evaluate_helper = _get_helper(self, num_inputs, num_targets)
@@ -532,7 +532,7 @@ class ModuleTrainer(object):
         eval_forward_fn = evaluate_helper.get_partial_forward_fn(self.model)
         eval_logs= {'val_loss': 0.}
         loader_iter = iter(loader)
-        
+
         if self._has_metrics:
             metric_container = MetricContainer(self._metrics, prefix='val_')
             metric_container.set_helper(evaluate_helper)
@@ -547,10 +547,10 @@ class ModuleTrainer(object):
             self._optimizer.zero_grad()
             output_batch = eval_forward_fn(input_batch)
             loss = eval_loss_fn(output_batch, target_batch)
-            
+
             samples_seen += batch_size
             eval_logs['val_loss'] = (samples_seen*eval_logs['val_loss'] + loss.data[0]*batch_size) / (samples_seen+batch_size)
-            
+
             if self._has_metrics:
                 metrics_logs = metric_container(output_batch, target_batch)
                 eval_logs.update(metrics_logs)
@@ -702,14 +702,14 @@ class SingleInput_MultiTarget_Helper(object):
     def get_partial_forward_fn(self, model):
         return functools.partial(self.forward_pass, model=model)
     def calculate_loss(self, output_batch, target_batch, loss_fn):
-        return sum([loss_fn[idx](output_batch[idx], target_batch[idx]) 
+        return sum([loss_fn[idx](output_batch[idx], target_batch[idx])
                     for idx in range(len(output_batch))])
     def get_partial_loss_fn(self, loss_fn):
         return functools.partial(self.calculate_loss, loss_fn=loss_fn)
 
 class MultiInput_SingleTarget_Helper(object):
     def move_to_cuda(self, cuda_device, inputs, targets):
-        inputs = [input_.cuda(cuda_device) for input_ in inputs] 
+        inputs = [input_.cuda(cuda_device) for input_ in inputs]
         targets = targets.cuda(cuda_device)
         return inputs, targets
     def shuffle_arrays(self, inputs, targets):
@@ -740,7 +740,7 @@ class MultiInput_SingleTarget_Helper(object):
 
 class MultiInput_MultiTarget_Helper(object):
     def move_to_cuda(self, cuda_device, inputs, targets):
-        inputs = [input_.cuda(cuda_device) for input_ in inputs] 
+        inputs = [input_.cuda(cuda_device) for input_ in inputs]
         targets = [target_.cuda(cuda_device) for target_ in targets]
         return inputs, targets
     def shuffle_arrays(self, inputs, targets):
@@ -766,7 +766,7 @@ class MultiInput_MultiTarget_Helper(object):
     def get_partial_forward_fn(self, model):
         return functools.partial(self.forward_pass, model=model)
     def calculate_loss(self, output_batch, target_batch, loss_fn):
-        return sum([loss_fn[idx](output_batch[idx], target_batch[idx]) 
+        return sum([loss_fn[idx](output_batch[idx], target_batch[idx])
                     for idx in range(len(output_batch))])
     def get_partial_loss_fn(self, loss_fn):
         return functools.partial(self.calculate_loss, loss_fn=loss_fn)

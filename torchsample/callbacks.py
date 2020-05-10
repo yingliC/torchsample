@@ -181,7 +181,7 @@ class History(Callback):
 #         self.sample_seen = 0.
 #         self.trainer = model
         
-        super(History, self).__init__(model)
+        super().__init__()
         self.samples_seen = 0.
         self.trainer = model
 

@@ -176,14 +176,14 @@ class History(Callback):
     every SuperModule.
     """
     def __init__(self, model):
-        self.as_super = super(PluginAAlias, self)
-        self.as_super.__init__(model)
-        self.sample_seen = 0.
-        self.trainer = model
-        
-#         super(History, self).__init__()
-#         self.samples_seen = 0.
+#         self.as_super = super(PluginAAlias, self)
+#         self.as_super.__init__(model)
+#         self.sample_seen = 0.
 #         self.trainer = model
+        
+        super(History, self).__init__(model)
+        self.samples_seen = 0.
+        self.trainer = model
 
     def on_train_begin(self, logs=None):
         self.epoch_metrics = {

@@ -784,7 +784,8 @@ class SingleInput_NoTarget_Helper(object):
         return input_batch, None
     def grab_batch_from_loader(self, loader_iter, volatile=False):
         input_batch = next(loader_iter)
-        return Variable(input_batch, volatile=volatile), None
+        #return Variable(input_batch, volatile=volatile), None # Variable data has to be a tensor, but got list
+        return Variable(input_batch[0], volatile=volatile), None
     def apply_transforms(self, tforms, input_batch, target_batch=None):
         input_batch = tforms[0](input_batch)
         return input_batch, None
